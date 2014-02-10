@@ -1,7 +1,13 @@
+Attribute VB_Name = "Module1"
 'CHART-CREATING MACRO DESIGNED FOR SURVEYMONKEY OUTPUTS
 '(C) 2014 FRIDA HATAMI - ANNENBERG FOUNDATION
 'FRIDAHATAMI@GMAIL.COM, 818-613-9651
 '-------------------------------CHANGELOG-------------------------------
+'v1.1 - FEBRUARY 9, 2014
+'NEW NORMALIZATION METHOD FOR DATA
+'NEW COLUMNS INSERTED FOR NORMALIZED DATA
+'UPDATED CHARTING
+'----------------------------------------------------------------------
 'v1.0 - FEBRUARY 9, 2014
 'INSERTS 2 NEW COLUMNS BASED ON MAX OF 5 ANSWER OPTION QUESTIONS
 'CHANGES COLUMN WIDTHS FOR CATEGORIES, ANSWER OPTIONS, AND RATING/RESPONSE
@@ -19,7 +25,6 @@
 '----------------------------------------------------------------------
 
 Sub main()
-Attribute main.VB_ProcData.VB_Invoke_Func = "B\n14"
     Dim sh As Worksheet, val As Integer, qNo As Integer
     
     Set sh = ActiveSheet
@@ -30,10 +35,10 @@ Attribute main.VB_ProcData.VB_Invoke_Func = "B\n14"
     
     qArr = allQs(val, sh)
     
-    Columns("H:I").Insert
-    ActiveSheet.Columns("A").ColumnWidth = 15
-    ActiveSheet.Columns("C:I").ColumnWidth = 6
-    ActiveSheet.Columns("J:K").ColumnWidth = 12
+    Columns("H:K").Insert
+    ActiveSheet.Columns("A:B").ColumnWidth = 15
+    ActiveSheet.Columns("C:K").ColumnWidth = 5
+    ActiveSheet.Columns("L:M").ColumnWidth = 12
     
     Call sumAndPerc(val, qArr)
     
@@ -72,67 +77,71 @@ Public Function createChart(qArr As Variant, qNo As Integer, sh As Worksheet)
     s = qArr(qNo, 1) + 1
     e = qArr(qNo, 2) - 1
     If qArr(qNo, 3) = 5 Then 'FIVE CATEGORY QUESTION SORTING
-        With Range(Cells(s - 1, 1), Cells(e, 11))
-            .Sort Key1:=Range(Cells(s, 9), Cells(e, 9)), _
+        With Range(Cells(s - 1, 1), Cells(e, 13))
+            .Sort Key1:=Range(Cells(s, 11), Cells(e, 11)), _
             Order1:=xlDescending, _
-            Header:=xlGuess
-        End With
-        Set catRange = Range(Cells(s, 1), Cells(e, 1))
-        Set valRange = Application.Union(Range(Cells(s, 6), Cells(e, 7)), Range(Cells(s, 9), Cells(e, 9)))
-    ElseIf qArr(qNo, 3) = 3 Then 'THREE CATEGORY QUESTION SORTING
-        With Range(Cells(s - 1, 1), Cells(e, 9))
-            .Sort Key1:=Range(Cells(s, 7), Cells(e, 7)), _
-            Order1:=xlDescending, _
-            Key2:=Range(Cells(s, 5), Cells(e, 5)), _
+            Key2:=Range(Cells(s, 10), Cells(e, 10)), _
             Order2:=xlDescending, _
             Header:=xlGuess
         End With
         Set catRange = Range(Cells(s, 1), Cells(e, 1))
-        Set valRange = Application.Union(Range(Cells(s, 4), Cells(e, 5)), Range(Cells(s, 7), Cells(e, 7)))
+        Set valRange = Application.Union(Range(Cells(s, 8), Cells(e, 9)), Range(Cells(s, 11), Cells(e, 11)))
+    ElseIf qArr(qNo, 3) = 3 Then 'THREE CATEGORY QUESTION SORTING
+        With Range(Cells(s - 1, 1), Cells(e, 11))
+            .Sort Key1:=Range(Cells(s, 9), Cells(e, 9)), _
+            Order1:=xlDescending, _
+            Key2:=Range(Cells(s, 8), Cells(e, 8)), _
+            Order2:=xlDescending, _
+            Header:=xlGuess
+        End With
+        Set catRange = Range(Cells(s, 1), Cells(e, 1))
+        Set valRange = Application.Union(Range(Cells(s, 6), Cells(e, 7)), Range(Cells(s, 9), Cells(e, 9)))
     End If
     If qArr(qNo, 3) > 2 Then
-        sh.Shapes.AddChart2(297, xlBarStacked).Select
+        sh.Shapes.AddChart(xlBarStacked).Select
         With ActiveChart
             .SetSourceData Source:=Union(catRange, valRange)
             .Axes(xlCategory).ReversePlotOrder = True
             .Axes(xlCategory).TickLabels.Font.Size = 10
             .HasAxis(xlSecondary) = False
             .Axes(xlSecondary).HasMajorGridlines = False
-            .Axes(xlSecondary).MaximumScale = WorksheetFunction.Max(Range(Cells(s, qArr(qNo, 3) + 3), Cells(e, qArr(qNo, 3) + 3))) * 1.25
+            '.Axes(xlSecondary).MaximumScale = WorksheetFunction.Max(Range(Cells(s, qArr(qNo, 3) + 3), Cells(e, qArr(qNo, 3) + 3))) * 1.25
+            .Axes(xlSecondary).MaximumScale = 120
             .ChartArea.Border.LineStyle = xlNone
-            .Parent.Top = Cells(qArr(qNo, 1) - 1, 13).Top
-            .Parent.Left = Cells(qArr(qNo, 1) - 1, 13).Left
+            .Parent.Top = Cells(qArr(qNo, 1) - 1, 15).Top
+            .Parent.Left = Cells(qArr(qNo, 1) - 1, 15).Left
             .ChartArea.Width = 400
-            .ChartArea.Height = Range(Cells(qArr(qNo, 1) - 1, 13), Cells(qArr(qNo, 2) + 2, 13)).Height
+            .ChartArea.Height = Range(Cells(qArr(qNo, 1) - 1, 1), Cells(qArr(qNo, 2) + 2, 1)).Height
             .HasTitle = True
             .ChartTitle.Text = "Question " & Left(Cells(qArr(qNo, 1) - 1, 1).Value, InStr(1, Cells(qArr(qNo, 1) - 1, 1).Value, ".") - 1)
             .ChartTitle.Font.FontStyle = "Bold"
             .Legend.Font.Size = 11
+            .Legend.Position = xlLegendPositionBottom
             For j = 1 To 3
                 If j < 3 Then
-                    .FullSeriesCollection(j).ApplyDataLabels
-                    .FullSeriesCollection(j).DataLabels.Font.Size = 10
-                    .FullSeriesCollection(j).Name = Cells(qArr(qNo, 1), qArr(qNo, 3) + j).Value
+                    '.FullSeriesCollection(j).ApplyDataLabels
+                    '.FullSeriesCollection(j).DataLabels.Font.Size = 10
+                    .SeriesCollection(j).Name = Cells(qArr(qNo, 1), qArr(qNo, 3) + j).Value
                 Else
-                    .FullSeriesCollection(j).ApplyDataLabels
-                    .FullSeriesCollection(j).DataLabels.Font.Size = 12
-                    .FullSeriesCollection(j).DataLabels.Font.FontStyle = "Bold"
-                    .FullSeriesCollection(j).DataLabels.Position = xlLabelPositionInsideBase
-                    .FullSeriesCollection(j).Format.Fill.Visible = msoFalse
+                    .SeriesCollection(j).ApplyDataLabels
+                    .SeriesCollection(j).DataLabels.Font.Size = 12
+                    .SeriesCollection(j).DataLabels.Font.FontStyle = "Bold"
+                    .SeriesCollection(j).DataLabels.Position = xlLabelPositionInsideBase
+                    .SeriesCollection(j).Format.Fill.Visible = msoFalse
                     .Legend.LegendEntries(j).Delete
                 End If
             Next j
-            ActiveChart.FullSeriesCollection(1).Select
+            ActiveChart.SeriesCollection(1).Select
             With Selection.Format.Fill
                 .Visible = msoTrue
                 .ForeColor.RGB = RGB(255, 218, 193) '<---CHANGE COLOR FOR FIRST SERIES HERE
                 .Transparency = 0
                 .Solid
             End With
-            ActiveChart.FullSeriesCollection(2).Select '<---CHANGE COLOR FOR SECOND SERIES HERE
+            ActiveChart.SeriesCollection(2).Select
             With Selection.Format.Fill
                 .Visible = msoTrue
-                .ForeColor.RGB = RGB(255, 157, 91)
+                .ForeColor.RGB = RGB(255, 157, 91) '<---CHANGE COLOR FOR SECOND SERIES HERE
                 .Transparency = 0
                 .Solid
             End With
@@ -181,41 +190,47 @@ End Function
 'FUNCTION FOR CHANGING ROW HEADERS OF THE INSERTED COLUMNS
 'AND APPLYING FORMULAS FOR CELLS IN THE NEW COLUMNS FOR SUMMATION
 'AND PERCENTAGE CALCULATION OF TOP TWO RESPONSES
+'v1.1 ADDS TWO MORE COLUMNS WITH NORMALIZED DATA FOR PLOTTING
 '----------------------------------------------------------------------
 Public Function sumAndPerc(qs As Integer, qArr As Variant)
-    myString = "," & Chr(34) & " & " & Chr(34) & ","
+    ampStr = "," & Chr(34) & " & " & Chr(34) & ","
+    normStr = Chr(34) & "Norm. " & Chr(34) & ","
     For i = 1 To qs
         If qArr(i, 3) = 5 Then '5 CATEGORY QUESTIONS
-            Cells(qArr(i, 1), 8).Select
-            ActiveCell.Value = "=CONCATENATE(" & ActiveCell.Offset(0, -2).Address & myString & ActiveCell.Offset(0, -1).Address & ")"
-            Cells(qArr(i, 1), 9).Value = "% of Total"
+            Cells(qArr(i, 1), 8).Value = "=CONCATENATE(" & normStr & Cells(qArr(i, 1), 6).Address & ")"
+            Cells(qArr(i, 1), 9).Value = "=CONCATENATE(" & normStr & Cells(qArr(i, 1), 7).Address & ")"
+            Cells(qArr(i, 1), 10).Value = "=CONCATENATE(" & Cells(qArr(i, 1), 6).Address & ampStr & Cells(qArr(i, 1), 7).Address & ")"
+            Cells(qArr(i, 1), 11).Value = "% of Total"
             For j = 1 To qArr(i, 2) - qArr(i, 1) - 1
                 cr = qArr(i, 1) + j
-                Cells(cr, 8).Value = "=SUM(F" & cr & ":G" & cr & ")"
-                With Cells(cr, 9)
-                    .Value = "=(H" & cr & "/K" & cr & ")"
-                    .NumberFormat = "0%"
-                End With
+                Cells(cr, 8).Value = "=ROUND((F" & cr & "/M" & cr & ")*100,0)"
+                Cells(cr, 9).Value = "=ROUND((G" & cr & "/M" & cr & ")*100,0)"
+                Cells(cr, 10).Value = "=SUM(F" & cr & ":G" & cr & ")"
+                Cells(cr, 11).Value = "=ROUND(J" & cr & "/M" & cr & ",2)"
+                Cells(cr, 11).NumberFormat = "0%"
             Next j
         ElseIf qArr(i, 3) = 3 Then '3 CATEGORY QUESTIONS
             'FIRST WE MOVE THE TWO COLUMNS OVER
             Range(Cells(qArr(i, 1), 6), Cells(qArr(i, 2) - 1, 7)).Select
             Selection.Copy
-            Cells(qArr(i, 1), 8).Select
+            Cells(qArr(i, 1), 10).Select
             Selection.PasteSpecial Paste:=xlPasteValuesAndNumberFormats
             'THEN INSERT FORMULAS FOR NEW COLUMNS
-            Cells(qArr(i, 1), 6).Select
-            ActiveCell.Value = "=CONCATENATE(" & ActiveCell.Offset(0, -2).Address & myString & ActiveCell.Offset(0, -1).Address & ")"
-            Cells(qArr(i, 1), 7).Value = "% of Total"
+            Cells(qArr(i, 1), 6).Value = "=CONCATENATE(" & normStr & Cells(qArr(i, 1), 4).Address & ")"
+            Cells(qArr(i, 1), 7).Value = "=CONCATENATE(" & normStr & Cells(qArr(i, 1), 5).Address & ")"
+            Cells(qArr(i, 1), 8).Value = "=CONCATENATE(" & Cells(qArr(i, 1), 4).Address & ampStr & Cells(qArr(i, 1), 5).Address & ")"
+            Cells(qArr(i, 1), 9).Value = "% of Total"
             For j = 1 To qArr(i, 2) - qArr(i, 1) - 1
                 cr = qArr(i, 1) + j
-                Cells(cr, 6).Value = "=SUM(D" & cr & ":E" & cr & ")"
-                With Cells(cr, 7)
-                    .Value = "=(F" & cr & "/I" & cr & ")"
-                    .NumberFormat = "0%"
-                End With
+                Cells(cr, 6).Value = "=ROUND((D" & cr & "/K" & cr & ")*100,0)"
+                Cells(cr, 7).Value = "=ROUND((E" & cr & "/K" & cr & ")*100,0)"
+                Cells(cr, 8).Value = "=SUM(D" & cr & ":E" & cr & ")"
+                Cells(cr, 9).Value = "=(H" & cr & "/K" & cr & ")"
+                Cells(cr, 9).NumberFormat = "0%"
             Next j
         End If
     Next i
 End Function
+
+
 
